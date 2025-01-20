@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, send_from_directory, session, url_for
 from __init__ import create_app
 from auth_code_grant import docusign_auth_grant
@@ -9,8 +10,9 @@ app = create_app()
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_react_app(path):
-    print(f"Entering serve_react_app, path: {path}")
-    
+    dotenv_path = os.path.join("../env", ".env")
+    load_dotenv(dotenv_path)
+    dev_server_url = os.getenv("REACT_DEV_URL")
     # Check if user is authenticated
     if "docusign_token" not in session:
         print("No token in session, redirecting to auth")
@@ -18,7 +20,7 @@ def serve_react_app(path):
     # Check if in development mode
     if app.config["VITE_MODE"] == "development":
         print("Dev mode, redirecting to React dev server")
-        return redirect("http://localhost:3000/")
+        return redirect(dev_server_url)
     
     # Serve static files from the frontend directory
     full_path = os.path.join(app.static_folder, path)
