@@ -52,8 +52,8 @@ def callbackFunc():
     return redirect(url_for("serve_react_app", path=""))
 
 
-@docusign.tokengetter 
-def get_docusign_oauth_token(): 
-    return session.get("docusign_token")
+# @docusign.tokengetter 
+# def get_docusign_oauth_token(): 
+#     return session.get("docusign_token")
 
 
