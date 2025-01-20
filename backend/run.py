@@ -36,6 +36,13 @@ def check_login():
     documents = {"message": "access token exist!"} 
     return jsonify(documents)
 
+@app.route("/get_documents", methods=['GET'])
+def get_documents():
+    check_auth();
+    files_array = ["files1.txt",'files2.txt','files3.txt'] 
+    return jsonify(files_array)
+
+
 def check_auth():
     if("docusign_token" not in session):
         return redirect(url_for("auth_code_grant.login"))
