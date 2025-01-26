@@ -10,6 +10,7 @@ from ds_config import DS_CONFIG as ds_config
 from dotenv import load_dotenv
 load_dotenv()
 
+# prints time on reruns
 print(time.time())
 
 #%% create functions
@@ -26,19 +27,19 @@ st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
 st.divider()
 
-#%% configuration
+#%% docusign authentication
 AUTHORIZATION_URL = f"{ds_config['authorization_server']}/oauth/auth"
 TOKEN_URL = f"{ds_config['authorization_server']}/oauth/token"
 REDIRECT_URI = ds_config['app_url_lcl']
 CLIENT_ID = ds_config['ds_client_id']
 CLIENT_SECRET = ds_config['ds_client_secret']
 REDIRECT_URI = ds_config['app_url_lcl']
-#BTN_URL = f"https://account-d.docusign.com/oauth/auth?response_type=code&client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=signature&state=d8LjbTmbZVlirw77oqw3OReWk5v9jC&code_challenge=RMK30ueseHEu6V7FImJA0KFJI1JCVzjc-Pgbo_adPUA&code_challenge_method=S256&approval_prompt=auto"
 SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
 
-with st.sidebar: # check access token and user
+# check access token and user
+with st.sidebar:
     #st.write("Access Token: ", st.session_state.get("token"))
     #st.write("User: ", st.session_state.get("user"))
     try:
@@ -50,16 +51,24 @@ with st.sidebar: # check access token and user
         st.write("User: ", 'name' in st.session_state.get("user"))
     except:
         st.write("User: ", False)
+    # display top level items in session state
+    st.write("Session State: ", st.session_state)
 
-if 'access_token' not in st.session_state:
+# check if token is in session state
+if 'token' not in st.session_state:
     result = oauth2.authorize_button("Continue with Docusign", REDIRECT_URI, SCOPES)
     with st.spinner("Waiting for authorization..."):
+        # check if result is not None
         if result:
+            # store token in session state
             st.session_state.token = result.get("token")
+            # get user info
             user = get_user(st.session_state.get("token").get("access_token"))
+            # store user in session state
             st.session_state.user = user
             st.rerun()
 
+# get access token and account id
 if st.session_state.get("token") and st.session_state.get("user"):
     access_token = st.session_state.get("token").get("access_token")
     account_id = st.session_state.get("user").get("accounts")[0].get("account_id")
@@ -76,8 +85,10 @@ else:
 #%% streamlit file uploader
 with st.expander("Upload Rental Agreement"):
     st.subheader('Streamlit File Uploader')
+    # file uploader
     uploaded_file = st.file_uploader("Upload a rental agreement", type=["pdf"])
     if uploaded_file is not None:
+        # display success message
         st.toast('Uploading file...')
         time.sleep(.5)
         st.toast('File uploaded successfully!')
@@ -89,21 +100,25 @@ with st.expander("Upload Rental Agreement"):
         # read file and encode to base64
         file_content = uploaded_file.read()
         base64_file_content = base64.b64encode(file_content).decode("utf-8")
-    st.divider()
+
+        # add document to session_state
+        st.session_state.document = {"name": uploaded_file.name, "content": base64_file_content}
+
+        del file_content, base64_file_content
 
 #%% docusign send agreement
 
 with st.expander("Docusign File Upload API"):
     st.subheader('Docusign File Upload API')
     results = None
-    if uploaded_file is not None:
+    if 'document' in st.session_state:
         st_email_input = st.text_input('Signer Email')
         st_name_input = st.text_input('Signer Name')
 
         # create document object
         document = Document(
-            document_base64=base64_file_content,
-            name=uploaded_file.name,
+            document_base64=st.session_state.document.get("content"),
+            name=str(st.session_state.document.get("name")),
             file_extension="pdf",
             document_id="1"
         )
