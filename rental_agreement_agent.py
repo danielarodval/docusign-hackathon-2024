@@ -51,6 +51,10 @@ with st.sidebar:
         st.write("User: ", 'name' in st.session_state.get("user"))
     except:
         st.write("User: ", False)
+    try:
+        st.write("Name: ", st.session_state.get("user").get("name"))
+    except:
+        st.write("Account ID: ", False)
     # display top level items in session state
     st.write("Session State: ", st.session_state)
 
@@ -94,8 +98,8 @@ with st.expander("Upload Rental Agreement"):
         st.toast('File uploaded successfully!')
 
         # display file details
-        st.write("Filename:", uploaded_file.name)
-        st.write("File type:", uploaded_file.type)
+        # st.write("Filename:", uploaded_file.name)
+        # st.write("File type:", uploaded_file.type)
 
         # read file and encode to base64
         file_content = uploaded_file.read()
@@ -103,7 +107,7 @@ with st.expander("Upload Rental Agreement"):
 
         # add document to session_state
         st.session_state.document = {"name": uploaded_file.name, "content": base64_file_content}
-
+        uploaded_file = None
         del file_content, base64_file_content
 
 #%% docusign send agreement
@@ -112,6 +116,17 @@ with st.expander("Docusign File Upload API"):
     st.subheader('Docusign File Upload API')
     results = None
     if 'document' in st.session_state:
+
+        #display currently uploaded document
+        st.write("Uploaded Document: ", st.session_state.document.get("name"))
+        if st.button("Delete Uploaded Document"):
+            del st.session_state["document"]
+            st.toast('Document deleted successfully!')
+            st.rerun()
+
+        st.divider()
+
+        # get signer email and name
         st_email_input = st.text_input('Signer Email')
         st_name_input = st.text_input('Signer Name')
 
@@ -163,7 +178,8 @@ with st.expander("Docusign File Upload API"):
             envelopes_api = EnvelopesApi(api_client)
             results = envelopes_api.create_envelope(account_id, envelope_definition=envelope_definition)
             st.success(f"Envelope created! Envelope ID: {results.envelope_id}")
-        exit
+    else:
+        st.warning("Please upload a document first.")
 
 #%% docusign navigator api
 headers = {

@@ -18,6 +18,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+Lib/
 lib/
 lib64/
 parts/
@@ -25,10 +26,12 @@ sdist/
 var/
 wheels/
 share/python-wheels/
+share/jupyter
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+man/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
