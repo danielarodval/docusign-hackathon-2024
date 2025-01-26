@@ -1,5 +1,5 @@
 # Ignoring Reference Files with keys
-reference_sdk_files/
+reference_sdk_files/Quickstart App-1-python/
 ds_config.py
 
 # Byte-compiled / optimized / DLL files
