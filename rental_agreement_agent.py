@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # prints time on reruns
-print(time.time())
+print("home - ",time.time())
 
 #%% create functions
 # Determine user, account_id, base_url by calling OAuth::getUserInfo
@@ -23,6 +23,15 @@ def get_user(access_token):
     return response
 
 #%% streamlit app
+
+st.set_page_config(
+    page_title="Rental Agreement Agent",
+    page_icon="app\ds_brand\Docusign_Logo.png",
+    initial_sidebar_state="collapsed",
+    menu_items={"About": "https://github.com/danielarodval/docusign-hackathon-2024"}
+    #layout="wide"
+)
+
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
 st.divider()
@@ -60,7 +69,11 @@ with st.sidebar:
 
 # check if token is in session state
 if 'token' not in st.session_state:
-    result = oauth2.authorize_button("Continue with Docusign", REDIRECT_URI, SCOPES)
+
+    encoded_icon = base64.b64encode(open("app\ds_brand\Docusign_Logo.png", "rb").read()).decode()
+    icon_path = f"data:image/png+xml;base64,{encoded_icon}"
+
+    result = oauth2.authorize_button("Continue with Docusign", REDIRECT_URI, SCOPES, icon=icon_path)
     with st.spinner("Waiting for authorization..."):
         # check if result is not None
         if result:
@@ -71,6 +84,8 @@ if 'token' not in st.session_state:
             # store user in session state
             st.session_state.user = user
             st.rerun()
+else:
+    st.write("You are logged in as: ", st.session_state.get("user").get("name"))
 
 # get access token and account id
 if st.session_state.get("token") and st.session_state.get("user"):
@@ -81,12 +96,13 @@ if st.session_state.get("token") and st.session_state.get("user"):
     api_client = ApiClient()
     api_client.host = base_path
     api_client.set_default_header("Authorization", f"Bearer {access_token}")
-
 else:
-    st.write("Please log in to continue.")
+    st.warning("Please log in to continue.")
     access_token = None
 
 #%% streamlit file uploader
+# UPDATE: find a way to delete the uploaded file when delete uploaded document selected
+# UPDATE: add preview file option
 with st.expander("Upload Rental Agreement"):
     st.subheader('Streamlit File Uploader')
     # file uploader
@@ -96,10 +112,6 @@ with st.expander("Upload Rental Agreement"):
         st.toast('Uploading file...')
         time.sleep(.5)
         st.toast('File uploaded successfully!')
-
-        # display file details
-        # st.write("Filename:", uploaded_file.name)
-        # st.write("File type:", uploaded_file.type)
 
         # read file and encode to base64
         file_content = uploaded_file.read()
@@ -111,7 +123,7 @@ with st.expander("Upload Rental Agreement"):
         del file_content, base64_file_content
 
 #%% docusign send agreement
-
+# UPDATE: change to st.form for better layout
 with st.expander("Docusign File Upload API"):
     st.subheader('Docusign File Upload API')
     results = None
@@ -182,26 +194,45 @@ with st.expander("Docusign File Upload API"):
         st.warning("Please upload a document first.")
 
 #%% docusign navigator api
+
+# set headers
 headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Accept": "application/json",
                 "Content-Type": "application/json"
             }
+
 with st.expander("Docusign Navigator API: Get List of Agreements"):
     st.subheader('Docusign Navigator API')
-    if st.button("Get List of Agreements"):
-        response_list = requests.get(f"https://api-d.docusign.com/v1/accounts/{account_id}/agreements", headers=headers)
-        if response_list.status_code > 399:
-            st.error(f"Error: {response_list.status_code}")
-            st.write(response_list.text)
-        else:
-            try:
-                response_list_json = response_list.json()
-                st.write(response_list_json)
-                st.success("Agreements fetched successfully!")
-            except requests.exceptions.JSONDecodeError:
-                st.error("Error: Response is not in JSON format")
+
+    if 'navapi_list' not in st.session_state:
+        if st.button("Get List of Agreements"):
+            # get list of agreements
+            response_list = requests.get(f"https://api-d.docusign.com/v1/accounts/{account_id}/agreements", headers=headers)
+            # check if response is successful
+            if response_list.status_code > 399:
+                # display error message
+                st.error(f"Error: {response_list.status_code}")
                 st.write(response_list.text)
+            else:
+                # display response
+                try:
+                    # convert response to json
+                    response_list_json = response_list.json()
+                    # store response list in session state
+                    st.session_state.navapi_list = response_list_json
+                    #st.write(response_list_json)
+                    st.success("Agreements fetched successfully!")
+                    st.rerun()
+                except requests.exceptions.JSONDecodeError:
+                    # display error message
+                    st.error("Error: Response is not in JSON format")
+                    st.write(response_list.text)
+    else:
+        # display agreements json items by names
+        st.markdown("<b>Agreements</b>", unsafe_allow_html=True)
+        for item in st.session_state.navapi_list.get("data"):
+            st.write(item.get("file_name"))
 
 with st.expander("Docusign Navigator API: Get Agreement"):
     st.subheader('Docusign Navigator API')
