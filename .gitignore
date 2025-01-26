@@ -32,6 +32,7 @@ share/jupyter
 *.egg
 MANIFEST
 man/
+etc/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
