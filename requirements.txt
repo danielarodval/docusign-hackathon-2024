@@ -45,4 +45,4 @@ streamlit
 streamlit-oauth
 streamlit-navigation-bar
 st-theme
-openai
+ollama

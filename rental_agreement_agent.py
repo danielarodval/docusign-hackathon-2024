@@ -1,3 +1,4 @@
+import logging
 import streamlit as st
 import time
 import base64
@@ -12,6 +13,7 @@ from ollama import ChatResponse
 # load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 # prints time on reruns
 print("home - ",time.time())
@@ -48,10 +50,9 @@ st.divider()
 #%% docusign authentication
 AUTHORIZATION_URL = f"{ds_config['authorization_server']}/oauth/auth"
 TOKEN_URL = f"{ds_config['authorization_server']}/oauth/token"
-REDIRECT_URI = ds_config['app_url_ts_desktop']
+REDIRECT_URI = ds_config["app_url_lcl"]
 CLIENT_ID = ds_config['ds_client_id']
 CLIENT_SECRET = ds_config['ds_client_secret']
-REDIRECT_URI = ds_config['app_url_ts_desktop']
 SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
@@ -228,7 +229,8 @@ with st.expander("Docusign Navigator API: Get List of Agreements"):
                 try:
                     # convert response to json
                     response_list_json = response_list.json()
-                    # store response list in session state
+                    
+                    # Store response list in session state
                     st.session_state.navapi_list = response_list_json
                     #st.write(response_list_json)
                     st.success("Agreements fetched successfully!")
@@ -281,9 +283,23 @@ with st.expander("Docusign Navigator API: Get Agreement"):
 
 #%% ollama chatbot
 
-def response_generator(prompt):
-    response: ChatResponse = chat(model="llama-7b", messages=[{"role": "user", "content": prompt}])
-    return response.message.content
+def response_generator(prompt, state):
+    try:
+        if len(state.messages) > 0:
+            full_context = state.messages + [{'role': 'user', 'content': prompt}]
+            response: ChatResponse = chat(model="mistral",messages= full_context)
+        else:
+            response: ChatResponse = chat(model="mistral" , messages=[
+            {
+                'role': 'user',
+                'content': f"{prompt}",
+            },
+            ])
+        return response.message.content
+    except Exception as e:
+        logging.error(f"Error during streaming: {str(e)}")
+        raise e
+
 
 def display_response(response):
     for word in response.split():
@@ -309,33 +325,33 @@ with st.expander("Ollama Chatbot"):
 
     # with st.chat_message("user"):
     #     st.write("Hello Ollama!")
-
-    # initialize chat
+    
+    # Initialize chat history if not present
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    
-    # display chat messages from history on app rerun
+
+# Display chat messages from history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # accept user input
+    # Accept user input
     if prompt := st.chat_input("Hello Ollama, what's up?"):
-        # add user messsage to chat history
+        # Add user message to chat history
+        st.chat_message("user").write(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
 
-        # display assistant response in chat message container
-        with st.chat_message("assistant"):
-            #st.write_stream("Thinking...")
-            response = st.write_stream(display_response(response_generator(prompt)))
-            
-        # add assistant response to chat history
+        # Generate assistant response
+        with st.spinner("Thinking..."):
+            response = response_generator(prompt, st.session_state)
+
+        # Display assistant response
+        st.chat_message("assistant").write(response)
+
+        # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # clear chat history
+
+     # clear chat history
     if st.button("Clear Chat"):
         del st.session_state["messages"]
         st.toast('Chat cleared successfully!')
