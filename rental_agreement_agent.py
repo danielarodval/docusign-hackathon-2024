@@ -30,7 +30,7 @@ def get_user(access_token):
 #%% streamlit app
 st.set_page_config(
     page_title="Rental Agreement Agent",
-    page_icon="app\ds_brand\Docusign_Logo.png",
+    page_icon="app/ds_brand/Docusign_Logo.png",
     initial_sidebar_state="collapsed",
     menu_items={"About": "https://github.com/danielarodval/docusign-hackathon-2024"}
     #layout="wide"
@@ -39,9 +39,9 @@ st.set_page_config(
 theme = st_theme()
 
 if theme['base'] == 'light':
-    st.logo("app\ds_brand\Docusign Horizontal Color Black\Docusign Horizontal_Black.png")
+    st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
 else:
-    st.logo("app\ds_brand\Docusign Horizontal Color White\Docusign Horizontal_White.png")
+    st.logo("app/ds_brand/Docusign Horizontal Color White/Docusign Horizontal_White.png")
 
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
@@ -77,7 +77,7 @@ with st.sidebar:
     # display top level items in session state
     st.write("Session State: ", st.session_state)
 
-encoded_icon = base64.b64encode(open("app\ds_brand\Docusign_Logo.png", "rb").read()).decode()
+encoded_icon = base64.b64encode(open("app/ds_brand/Docusign_Logo.png", "rb").read()).decode()
 st_btn_ds_icon = f"data:image/png+xml;base64,{encoded_icon}"
 
 # check if token is in session state
