@@ -281,34 +281,17 @@ with st.expander("Docusign Navigator API: Get Agreement"):
 
 #%% ollama chatbot
 
-def response_generator(prompt):
-    response: ChatResponse = chat(model="llama-7b", messages=[{"role": "user", "content": prompt}])
-    return response.message.content
-
-def display_response(response):
-    for word in response.split():
-        yield word + " "
-        time.sleep(0.05)
+def token_generator(prompt):
+    token: ChatResponse = chat(model="llama-13b", messages=[{"role": "user", "content": prompt}], stream=True)
+    for chunk in token:
+        print(chunk['message']['content'], end="", flush=True)
+        yield chunk['message']['content']
 
 with st.expander("Ollama Chatbot"):
     st.subheader('Ollama Chatbot')
+    #display model
+    #st.write(ModelDetails("llama-13b"))
     st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
-    #st.write("Type 'exit' to stop the chat.")
-
-    # if st.button("Start Chat"):
-    #     response: ChatResponse = chat(model="llama-7b", messages=[
-    #         {
-    #             'role': 'user',
-    #             'content': 'Why is the sky blue? What is the rental period?'
-    #         }
-    #     ])
-
-    #     st.write(response.message.content)
-    #     print(response.message.content)
-
-
-    # with st.chat_message("user"):
-    #     st.write("Hello Ollama!")
 
     # initialize chat
     if "messages" not in st.session_state:
@@ -324,16 +307,17 @@ with st.expander("Ollama Chatbot"):
         # add user messsage to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         # display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        st.chat_message("user").markdown(prompt)
+        # insert text in front of prompt before sending to ollama
+        prompt = "" + prompt
 
-        # display assistant response in chat message container
-        with st.chat_message("assistant"):
-            #st.write_stream("Thinking...")
-            response = st.write_stream(display_response(response_generator(prompt)))
+        # display assistant token in chat message container
+        with st.chat_message("ai"):
+            token_stream = st.write_stream(token_generator(prompt))
             
-        # add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        # add assistant token to chat history
+        st.session_state.messages.append({"role": "assistant", "content": token_stream})
+        #st.rerun()
     
     # clear chat history
     if st.button("Clear Chat"):
