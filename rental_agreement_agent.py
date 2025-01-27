@@ -39,9 +39,9 @@ st.set_page_config(
 theme = st_theme()
 
 if theme['base'] == 'light':
-    st.logo("app\ds_brand\Docusign Horizontal Color Black\Docusign Horizontal_Black.svg")
+    st.logo("app\ds_brand\Docusign Horizontal Color Black\Docusign Horizontal_Black.png")
 else:
-    st.logo("app\ds_brand\Docusign Horizontal Color White\Docusign Horizontal_White.svg")
+    st.logo("app\ds_brand\Docusign Horizontal Color White\Docusign Horizontal_White.png")
 
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
