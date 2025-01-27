@@ -3,13 +3,12 @@
 from dotenv import load_dotenv
 import os
 
-dotenv_path = os.path.join('../env', '.env')
+dotenv_path = os.path.join('env', '.env')
 load_dotenv(dotenv_path)
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 signer_email = os.getenv("SIGNER_EMAIL")
 signer_name = os.getenv("SIGNER_NAME")
-
 DS_CONFIG = {
     "ds_client_id": f'{client_id}',  # The app's DocuSign integration key
     "ds_client_secret": f'{client_secret}',  # The app's DocuSign integration key's secret

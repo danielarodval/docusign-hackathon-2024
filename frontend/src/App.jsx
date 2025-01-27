@@ -3,19 +3,23 @@ import ChatBot from "./ChatBot"
 import { useEffect } from "react";
 function App() {
 
-
-
   useEffect(() => {
     const loginUser = async () => {
       try {
-        const response = await fetch("/api/check_access_token", {
+        const response = await fetch("/api/token_management", {
           method: "GET",
+          redirect: 'follow',
+          mode: "cors",
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
-          }
+          },
+          credentials: 'omit'  // Add this line
         });
         
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         console.log(data.message); // Log the response from the backend
       } catch (error) {
@@ -37,7 +41,6 @@ function App() {
         <ChatBot/>
       </div>
     </div>
-    
     </>
     
   )

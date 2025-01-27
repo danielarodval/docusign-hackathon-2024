@@ -4,14 +4,14 @@ import UploadDocument from "./UploadDocument";
 export default function Document() {
   const [files, setFiles] = useState(null);
 
-  useEffect(() => {
-    const getDocuments = async () => {
-      const response = await fetch("/api/get_documents");
-      const data = await response.json();
-      setFiles(data);
-    };
-    getDocuments();
-  }, []);
+  // useEffect(() => {
+  //   const getDocuments = async () => {
+  //     const response = await fetch("/api/get_documents");
+  //     const data = await response.json();
+  //     setFiles(data);
+  //   };
+  //   getDocuments();
+  // }, []);
 
   // Post method
   function handleUploadDocument(event) {
