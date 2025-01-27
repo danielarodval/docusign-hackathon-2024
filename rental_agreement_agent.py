@@ -4,7 +4,10 @@ import base64
 from docusign_esign import Document, ApiClient, EnvelopeDefinition, EnvelopesApi, Signer, Tabs, SignHere, Recipients
 import requests
 from streamlit_oauth import OAuth2Component
+from streamlit_theme import st_theme
 from ds_config import DS_CONFIG as ds_config
+from ollama import chat
+from ollama import ChatResponse
 
 # load environment variables
 from dotenv import load_dotenv
@@ -23,7 +26,6 @@ def get_user(access_token):
     return response
 
 #%% streamlit app
-
 st.set_page_config(
     page_title="Rental Agreement Agent",
     page_icon="app\ds_brand\Docusign_Logo.png",
@@ -32,6 +34,13 @@ st.set_page_config(
     #layout="wide"
 )
 
+theme = st_theme()
+
+if theme['base'] == 'light':
+    st.logo("app\ds_brand\Docusign Horizontal Color Black\Docusign Horizontal_Black.svg")
+else:
+    st.logo("app\ds_brand\Docusign Horizontal Color White\Docusign Horizontal_White.svg")
+
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
 st.divider()
@@ -39,10 +48,10 @@ st.divider()
 #%% docusign authentication
 AUTHORIZATION_URL = f"{ds_config['authorization_server']}/oauth/auth"
 TOKEN_URL = f"{ds_config['authorization_server']}/oauth/token"
-REDIRECT_URI = ds_config['app_url_lcl']
+REDIRECT_URI = ds_config['app_url_ts_desktop']
 CLIENT_ID = ds_config['ds_client_id']
 CLIENT_SECRET = ds_config['ds_client_secret']
-REDIRECT_URI = ds_config['app_url_lcl']
+REDIRECT_URI = ds_config['app_url_ts_desktop']
 SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
@@ -67,13 +76,13 @@ with st.sidebar:
     # display top level items in session state
     st.write("Session State: ", st.session_state)
 
+encoded_icon = base64.b64encode(open("app\ds_brand\Docusign_Logo.png", "rb").read()).decode()
+st_btn_ds_icon = f"data:image/png+xml;base64,{encoded_icon}"
+
 # check if token is in session state
 if 'token' not in st.session_state:
 
-    encoded_icon = base64.b64encode(open("app\ds_brand\Docusign_Logo.png", "rb").read()).decode()
-    icon_path = f"data:image/png+xml;base64,{encoded_icon}"
-
-    result = oauth2.authorize_button("Continue with Docusign", REDIRECT_URI, SCOPES, icon=icon_path)
+    result = oauth2.authorize_button("Continue with Docusign", REDIRECT_URI, SCOPES, icon=st_btn_ds_icon)
     with st.spinner("Waiting for authorization..."):
         # check if result is not None
         if result:
@@ -233,14 +242,28 @@ with st.expander("Docusign Navigator API: Get List of Agreements"):
         st.markdown("<b>Agreements</b>", unsafe_allow_html=True)
         for item in st.session_state.navapi_list.get("data"):
             st.write(item.get("file_name"))
+        # button to clear agreements
+        if st.button("Clear Agreements"):
+            del st.session_state["navapi_list"]
+            st.toast('Agreements cleared successfully!')
+            st.rerun()
 
 with st.expander("Docusign Navigator API: Get Agreement"):
     st.subheader('Docusign Navigator API')
-    if uploaded_file is not None:
-        if results is None:
 
-            agreement_id = "2d2812ba-974c-4068-9e99-9f42ebd2bf9a"
-            
+    # if navapi_list is not in session state
+    if 'navapi_list' not in st.session_state:
+        st.warning("Please get list of agreements first.")
+    else:
+        # agreement id selection
+        agreements = [{"file_name": item.get("file_name"), "id": item.get("id")} for item in st.session_state.navapi_list.get("data")]
+        selected_agreement = st.selectbox("Select Agreement", agreements, format_func=lambda x: x["file_name"])
+
+        if selected_agreement is None:
+            st.warning("Please select an agreement.")
+        else:
+            agreement_id = selected_agreement["id"]
+
             # get agreement
             if st.button("Get Agreement"):
                 response = requests.get(f"https://api-d.docusign.com/v1/accounts/{account_id}/agreements/{agreement_id}", headers=headers)
@@ -255,4 +278,65 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                     except requests.exceptions.JSONDecodeError:
                         st.error("Error: Response is not in JSON format")
                         st.write(response.text)
-        exit
+
+#%% ollama chatbot
+
+def response_generator(prompt):
+    response: ChatResponse = chat(model="llama-7b", messages=[{"role": "user", "content": prompt}])
+    return response.message.content
+
+def display_response(response):
+    for word in response.split():
+        yield word + " "
+        time.sleep(0.05)
+
+with st.expander("Ollama Chatbot"):
+    st.subheader('Ollama Chatbot')
+    st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
+    #st.write("Type 'exit' to stop the chat.")
+
+    # if st.button("Start Chat"):
+    #     response: ChatResponse = chat(model="llama-7b", messages=[
+    #         {
+    #             'role': 'user',
+    #             'content': 'Why is the sky blue? What is the rental period?'
+    #         }
+    #     ])
+
+    #     st.write(response.message.content)
+    #     print(response.message.content)
+
+
+    # with st.chat_message("user"):
+    #     st.write("Hello Ollama!")
+
+    # initialize chat
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    
+    # display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # accept user input
+    if prompt := st.chat_input("Hello Ollama, what's up?"):
+        # add user messsage to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # display assistant response in chat message container
+        with st.chat_message("assistant"):
+            #st.write_stream("Thinking...")
+            response = st.write_stream(display_response(response_generator(prompt)))
+            
+        # add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    # clear chat history
+    if st.button("Clear Chat"):
+        del st.session_state["messages"]
+        st.toast('Chat cleared successfully!')
+        st.rerun()

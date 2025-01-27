@@ -44,3 +44,5 @@ wrapt==1.16.0
 streamlit
 streamlit-oauth
 streamlit-navigation-bar
+st-theme
+openai
