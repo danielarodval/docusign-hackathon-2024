@@ -79,7 +79,7 @@ with st.sidebar:
     except:
         st.write("Account ID: ", False)
     # display top level items in session state
-    st.write("Session State: ", st.session_state)
+    #st.write("Session State: ", st.session_state)
 
 encoded_icon = base64.b64encode(open("app/ds_brand/Docusign_Logo.png", "rb").read()).decode()
 st_btn_ds_icon = f"data:image/png+xml;base64,{encoded_icon}"
@@ -138,8 +138,8 @@ with st.expander("Upload Rental Agreement"):
 
 #%% docusign send agreement
 # UPDATE: change to st.form for better layout
-with st.expander("Docusign File Upload API"):
-    st.subheader('Docusign File Upload API')
+with st.expander("Docusign Envelopes API: File Upload"):
+    st.subheader('Docusign Envelopes API: File Upload')
     results = None
     if 'document' in st.session_state:
 
@@ -269,30 +269,41 @@ with st.expander("Docusign Navigator API: Get Agreement"):
             st.warning("Please select an agreement.")
         else:
             agreement_id = selected_agreement["id"]
+            #st.write("test")
 
-            # get agreement
-            if st.button("Get Agreement"):
-                response = requests.get(f"https://api-d.docusign.com/v1/accounts/{account_id}/agreements/{agreement_id}", headers=headers)
-                if response.status_code > 399:
-                    st.error(f"Error: {response.status_code}")
-                    st.write(response.text)
-                else:
-                    try:
-                        if "selected_agreement" not in st.session_state:
-                            st.session_state.selected_agreement = ""
-                        response_json = response.json()
-                        
-                        st.session_state.selected_agreement = response_json
-                        st.rerun()
-                    except requests.exceptions.JSONDecodeError:
-                        st.error("Error: Response is not in JSON format")
+            col_get_1, col_get_2 = st.columns(2)
+
+            with col_get_1:
+                # get agreement
+                if st.button("Get Agreement"):
+                    response = requests.get(f"https://api-d.docusign.com/v1/accounts/{account_id}/agreements/{agreement_id}", headers=headers)
+                    if response.status_code > 399:
+                        st.error(f"Error: {response.status_code}")
                         st.write(response.text)
-                if "selected_agreement" in st.session_state:
-                    st.success("Agreement fetched successfully!")
-                if st.button("Clear Agreement"):
+                    else:
+                        try:
+                            if "selected_agreement" not in st.session_state:
+                                st.session_state.selected_agreement = ""
+                            response_json = response.json()
+                            
+                            st.session_state.selected_agreement = response_json
+                            st.rerun()
+                        except requests.exceptions.JSONDecodeError:
+                            st.error("Error: Response is not in JSON format")
+                            st.write(response.text)
+
+            with col_get_2:
+                # display agreement details
+                if st.button("Clear Agreement") and "selected_agreement" in st.session_state:
                     del st.session_state["selected_agreement"]
                     st.toast('Agreement cleared successfully!')
                     st.rerun()
+            
+            # display agreement status
+            if "selected_agreement" in st.session_state:
+                st.success("Agreement fetched successfully!")
+
+#%% ollama chatbot
 
 def response_generator(prompt, state):
     
@@ -304,39 +315,24 @@ def response_generator(prompt, state):
             agreement_context = json.dumps(state.selected_agreement, separators=(',', ':'))
             # Force-escape all existing double quotes
             #escaped_agreement_context = agreement_context.replace('"', r'\"')
-
             full_context = [
                 {
                     'role': 'system',
                     'content': f"Agreement Context: {agreement_context}"
                 },
-                #*state.messages,
+                *state.messages,
                 {
                     'role': 'user',
                     'content': prompt
                 }
             ]
 
-            print(full_context)
-
             DATA = {
                 "model": "mistral",
                 "messages": full_context
             }
 
-            print(json.dumps(DATA, indent=2))
-
-            # remove all line breaks in json string and make it a single line
-            
-
-            # print("Agreement Context: " + agreement_context + "Prompt: " + prompt)
-
-            # DATA = {
-            #     "model": "mistral",
-            #     "prompt": ("Agreement Context: " + agreement_context + "Prompt: " + prompt)
-            # }
-
-            
+            #print(json.dumps(DATA, indent=2))
             response = requests.post(URL+url_ext, json=DATA, headers={"Content-Type": "application/json"})
 
         else:
@@ -345,7 +341,6 @@ def response_generator(prompt, state):
                 "model": "mistral",
                 "prompt": prompt
             }
-
             response = requests.post(URL+url_ext, json=DATA)
         
         print(response.text)
@@ -371,16 +366,17 @@ def display_response(response):
         yield word + " "
         time.sleep(0.05)
 
-
-
 with st.expander("Ollama Chatbot"):
     st.subheader('Ollama Chatbot')
     URL = ds_config['ollama_ts']#+"/api/generate"
-    #is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
-    try: 
-        #is_llm_active.status_code == 200:
+    is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
+
+    # check if model is active and if user is signed into docusign
+    if access_token is None:
+        st.error("Please sign into Docusign to continue.")
+    elif access_token is not None and is_llm_active.status_code == 200:
         st.success(is_llm_active.text)
-    except:
+
         st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
 
         # initialize chat
@@ -416,4 +412,3 @@ with st.expander("Ollama Chatbot"):
             st.rerun()
     else:
         st.error("No active model running.")
-# %%
