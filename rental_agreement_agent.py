@@ -293,7 +293,7 @@ def response_generator(prompt, state):
     try:
         # Check if selected_agreement exists and is a dictionary
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
-            URL_EXT = "/api/chat"
+            url_ext = "/api/chat"
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
             agreement_context = agreement_context.replace("\n", " ")
@@ -323,16 +323,16 @@ def response_generator(prompt, state):
             # }
 
             
-            response = requests.post(URL, json=DATA)
+            response = requests.post(URL+url_ext, json=DATA)
 
         else:
-            URL_EXT = "/api/generate"
+            url_ext = "/api/generate"
             DATA = {
                 "model": "mistral",
                 "prompt": prompt
             }
 
-            response = requests.post(URL, json=DATA)
+            response = requests.post(URL+url_ext, json=DATA)
         
         print(response.text)
    
