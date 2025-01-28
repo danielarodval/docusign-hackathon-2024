@@ -289,40 +289,44 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         st.write(response.text)
 
 def response_generator(prompt, state):
-    URL_EXT = "/api/generate"
+    
     try:
         # Check if selected_agreement exists and is a dictionary
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
+            URL_EXT = "/api/chat"
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
-
-            # full_context = [
-            #     {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
-            #     #*state.messages,
-            #     {'role': 'user', 'content': prompt},
-            # ]
-
-            # print(type(agreement_context))
-
-            # DATA = {
-            #     "model": "mistral",
-            #     "messages": full_context
-            # }
-
-            # remove all line breaks in json string and make it a single line
             agreement_context = agreement_context.replace("\n", " ")
+            print(f"Agreement Context: {agreement_context}")
+            print(f"Prompt: {prompt}")
+            full_context = [
+                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+                #*state.messages,
+                {'role': 'user', 'content': prompt},
+            ]
 
-            print("Agreement Context: " + agreement_context + "Prompt: " + prompt)
+            print(type(agreement_context))
 
             DATA = {
                 "model": "mistral",
-                "prompt": ("Agreement Context: " + agreement_context + "Prompt: " + prompt)
+                "messages": full_context
             }
+
+            # remove all line breaks in json string and make it a single line
+            
+
+            # print("Agreement Context: " + agreement_context + "Prompt: " + prompt)
+
+            # DATA = {
+            #     "model": "mistral",
+            #     "prompt": ("Agreement Context: " + agreement_context + "Prompt: " + prompt)
+            # }
 
             
             response = requests.post(URL, json=DATA)
 
         else:
+            URL_EXT = "/api/generate"
             DATA = {
                 "model": "mistral",
                 "prompt": prompt
