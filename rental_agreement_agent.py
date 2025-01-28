@@ -303,7 +303,7 @@ def response_generator(prompt, state):
 
             DATA = {
                 "model": "mistral",
-                "messages": full_context
+                "messages": f"{full_context}"
             }
             
             response = requests.post(URL, json=DATA)
