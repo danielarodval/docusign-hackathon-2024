@@ -316,7 +316,7 @@ def response_generator(prompt, state):
 
             DATA = {
                 "model": "mistral",
-                "prompt": f"Agreement Context: {agreement_context} {prompt}"
+                "prompt": f"{agreement_context} {prompt}"
             }
 
             
