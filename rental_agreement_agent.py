@@ -336,10 +336,11 @@ def display_response(response):
 with st.expander("Ollama Chatbot"):
     st.subheader('Ollama Chatbot')
     URL = ds_config['ollama_ts']#+"/api/generate"
-    is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
-    if is_llm_active.status_code == 200:
+    #is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
+    try: 
+        #is_llm_active.status_code == 200:
         st.success(is_llm_active.text)
-
+    except:
         st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
 
         # initialize chat
