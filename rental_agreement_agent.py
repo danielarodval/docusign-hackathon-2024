@@ -283,23 +283,27 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         response_json = response.json()
                         st.success("Agreement fetched successfully!")
                         st.session_state.selected_agreement = response_json
-                        st.write(response_json)
-                        st.rerun()
                     except requests.exceptions.JSONDecodeError:
                         st.error("Error: Response is not in JSON format")
                         st.write(response.text)
 
 def response_generator(prompt, state):
-    URL_EXT = "/api/generate"
+    URL_EXT = "/api/chat"
     try:
         # Check if selected_agreement exists and is a dictionary
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
 
+            full_context = [
+                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+                *state.messages,
+                {'role': 'user', 'content': prompt}
+            ]
+
             DATA = {
                 "model": "mistral",
-                "prompt": prompt
+                "messages": full_context
             }
             
             response = requests.post(URL, json=DATA)
