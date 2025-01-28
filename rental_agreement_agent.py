@@ -302,6 +302,8 @@ def response_generator(prompt, state):
                 {'role': 'user', 'content': prompt},
             ]
 
+            print(agreement_context)
+
             DATA = {
                 "model": "mistral",
                 "messages": full_context
