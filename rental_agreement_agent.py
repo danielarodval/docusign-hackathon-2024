@@ -283,6 +283,7 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         response_json = response.json()
                         st.success("Agreement fetched successfully!")
                         st.session_state.selected_agreement = response_json
+                        st.rerun()
                     except requests.exceptions.JSONDecodeError:
                         st.error("Error: Response is not in JSON format")
                         st.write(response.text)
@@ -298,7 +299,7 @@ def response_generator(prompt, state):
             full_context = [
                 {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
                 #*state.messages,
-                {'role': 'user', 'content': prompt}
+                {'role': 'user', 'content': prompt},
             ]
 
             DATA = {
