@@ -311,6 +311,9 @@ def response_generator(prompt, state):
 
             # remove all line breaks in json string and make it a single line
             agreement_context = agreement_context.replace("\n", " ")
+
+            print(agreement_context)
+
             DATA = {
                 "model": "mistral",
                 "prompt": f"Agreement Context: {agreement_context} {prompt}"
@@ -380,7 +383,7 @@ with st.expander("Ollama Chatbot"):
 
             # display assistant response
             st.chat_message("assistant").write(response)
-                
+            
             # add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
         
