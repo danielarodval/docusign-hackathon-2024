@@ -289,25 +289,30 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         st.write(response.text)
 
 def response_generator(prompt, state):
-    URL_EXT = "/api/chat"
+    URL_EXT = "/api/generate"
     try:
         # Check if selected_agreement exists and is a dictionary
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
 
-            full_context = [
-                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
-                #*state.messages,
-                {'role': 'user', 'content': prompt},
-            ]
+            # full_context = [
+            #     {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+            #     #*state.messages,
+            #     {'role': 'user', 'content': prompt},
+            # ]
 
-            print(type(agreement_context))
+            # print(type(agreement_context))
 
+            # DATA = {
+            #     "model": "mistral",
+            #     "messages": full_context
+            # }
             DATA = {
                 "model": "mistral",
-                "messages": full_context
+                "prompt": f"Agreement Context: {agreement_context} {prompt}"
             }
+
             
             response = requests.post(URL, json=DATA)
 
