@@ -281,12 +281,18 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         if "selected_agreement" not in st.session_state:
                             st.session_state.selected_agreement = ""
                         response_json = response.json()
-                        st.success("Agreement fetched successfully!")
+                        
                         st.session_state.selected_agreement = response_json
                         st.rerun()
                     except requests.exceptions.JSONDecodeError:
                         st.error("Error: Response is not in JSON format")
                         st.write(response.text)
+                if "selected_agreement" in st.session_state:
+                    st.success("Agreement fetched successfully!")
+                if st.button("Clear Agreement"):
+                    del st.session_state["selected_agreement"]
+                    st.toast('Agreement cleared successfully!')
+                    st.rerun()
 
 def response_generator(prompt, state):
     
@@ -296,13 +302,13 @@ def response_generator(prompt, state):
             url_ext = "/api/chat"
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, separators=(',', ':'))
-            #agreement_context = agreement_context.replace("\n", " ")
-            #print(f"Agreement Context: {agreement_context}")
-            #print(f"Prompt: {prompt}")
+            # Force-escape all existing double quotes
+            escaped_agreement_context = agreement_context.replace('"', r'\"')
+
             full_context = [
                 {
                     'role': 'system',
-                    'content': f"Agreement Context: {agreement_context}"
+                    'content': f"Agreement Context: {escaped_agreement_context}"
                 },
                 #*state.messages,
                 {
@@ -310,6 +316,8 @@ def response_generator(prompt, state):
                     'content': prompt
                 }
             ]
+
+            print(full_context)
 
             DATA = {
                 "model": "mistral",
@@ -390,7 +398,7 @@ with st.expander("Ollama Chatbot"):
                 response = response_generator(prompt, st.session_state)
 
             # display assistant response
-            st.chat_message("assistant").markdown(display_response(response))
+            st.chat_message("assistant").write(display_response(response))
             
             # add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
