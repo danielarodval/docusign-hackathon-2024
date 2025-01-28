@@ -296,9 +296,9 @@ def response_generator(prompt, state):
             url_ext = "/api/chat"
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
-            agreement_context = agreement_context.replace("\n", " ")
-            print(f"Agreement Context: {agreement_context}")
-            print(f"Prompt: {prompt}")
+            #agreement_context = agreement_context.replace("\n", " ")
+            #print(f"Agreement Context: {agreement_context}")
+            #print(f"Prompt: {prompt}")
             full_context = [
                 {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
                 #*state.messages,
@@ -383,10 +383,10 @@ with st.expander("Ollama Chatbot"):
 
             # Generate assistant response
             with st.spinner("Thinking..."):
-                response = display_response(response_generator(prompt, st.session_state))
+                response = response_generator(prompt, st.session_state)
 
             # display assistant response
-            st.chat_message("assistant").write(response)
+            st.chat_message("assistant").write(display_response(response))
             
             # add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
