@@ -312,11 +312,11 @@ def response_generator(prompt, state):
             # remove all line breaks in json string and make it a single line
             agreement_context = agreement_context.replace("\n", " ")
 
-            print(agreement_context)
+            print(f"{agreement_context} {prompt}")
 
             DATA = {
                 "model": "mistral",
-                "prompt": f"{agreement_context} {prompt}"
+                "prompt": prompt
             }
 
             
