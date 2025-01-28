@@ -308,7 +308,7 @@ def response_generator(prompt, state):
             full_context = [
                 {
                     'role': 'system',
-                    'content': f"Agreement Context: {escaped_agreement_context}"
+                    'content': f"Agreement Context: {agreement_context}"
                 },
                 #*state.messages,
                 {
@@ -355,7 +355,11 @@ def response_generator(prompt, state):
         # parse each line as json
         response_dicts = [json.loads(line) for line in response_lines]
         # format as string
-        response_text = ''.join(response_dict.get('response', '') for response_dict in response_dicts)
+        response_text = ''.join(
+            d['message']['content']
+            for d in response_dicts
+            if 'message' in d and 'content' in d['message']
+        )
         print(response_text)
         return response_text
     except Exception as e:
