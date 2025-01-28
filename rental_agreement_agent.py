@@ -307,9 +307,11 @@ def response_generator(prompt, state):
             URL = ds_config['ollama_ts']
 
             payload = {
-                "prompt": prompt,
                 "model": "mistral",
+                "prompt": prompt
             }
+
+            
 
             response = requests.post(URL, json=payload)
         else:
