@@ -297,13 +297,13 @@ def response_generator(prompt, state):
 
             full_context = [
                 {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
-                *state.messages,
+                #*state.messages,
                 {'role': 'user', 'content': prompt}
             ]
 
             DATA = {
                 "model": "mistral",
-                "messages": f"{full_context}"
+                "messages": full_context
             }
             
             response = requests.post(URL, json=DATA)
