@@ -295,17 +295,21 @@ def response_generator(prompt, state):
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
             url_ext = "/api/chat"
             # Convert agreement to JSON string for context
-            agreement_context = json.dumps(state.selected_agreement, indent=2)
+            agreement_context = json.dumps(state.selected_agreement, separators=(',', ':'))
             #agreement_context = agreement_context.replace("\n", " ")
             #print(f"Agreement Context: {agreement_context}")
             #print(f"Prompt: {prompt}")
             full_context = [
-                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+                {
+                    'role': 'system',
+                    'content': f"Agreement Context: {agreement_context}"
+                },
                 #*state.messages,
-                {'role': 'user', 'content': prompt},
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
             ]
-
-            print(type(agreement_context))
 
             DATA = {
                 "model": "mistral",
@@ -323,7 +327,7 @@ def response_generator(prompt, state):
             # }
 
             
-            response = requests.post(URL+url_ext, json=DATA)
+            response = requests.post(URL+url_ext, json=DATA, headers={"Content-Type": "application/json"})
 
         else:
             url_ext = "/api/generate"
@@ -378,7 +382,7 @@ with st.expander("Ollama Chatbot"):
         if prompt := st.chat_input("Hello Ollama, what's up?"):
 
             # Add user message to chat history
-            st.chat_message("user").write(prompt)
+            st.chat_message("user").markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
 
             # Generate assistant response
@@ -386,7 +390,7 @@ with st.expander("Ollama Chatbot"):
                 response = response_generator(prompt, st.session_state)
 
             # display assistant response
-            st.chat_message("assistant").write(display_response(response))
+            st.chat_message("assistant").markdown(display_response(response))
             
             # add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
