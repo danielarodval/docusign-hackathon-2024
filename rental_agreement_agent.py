@@ -1,3 +1,4 @@
+import json
 import logging
 import streamlit as st
 import time
@@ -57,6 +58,8 @@ SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
 
+agreement_id = ""
+account_id = ""
 # check access token and user
 with st.sidebar:
     #st.write("Access Token: ", st.session_state.get("token"))
@@ -274,10 +277,86 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                     st.write(response.text)
                 else:
                     try:
+                        if "selected_agreement" not in st.session_state:
+                            st.session_state.selected_agreement = ""
                         response_json = response.json()
-                        st.write(response_json)
                         st.success("Agreement fetched successfully!")
+                        st.session_state.selected_agreement = response_json
+                        st.write(response_json)
+                        st.rerun()
                     except requests.exceptions.JSONDecodeError:
                         st.error("Error: Response is not in JSON format")
                         st.write(response.text)
 
+def response_generator(prompt, state):
+    try:
+        # Check if selected_agreement exists and is a dictionary
+        if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
+            # Convert agreement to JSON string for context
+            agreement_context = json.dumps(state.selected_agreement, indent=2)
+            
+            # Prepare messages with agreement context
+            full_context = [
+                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+                *state.messages,
+                {'role': 'user', 'content': prompt}
+            ]
+            
+            response: ChatResponse = chat(model="mistral", messages=full_context)
+        else:
+            response: ChatResponse = chat(model="mistral", messages=[
+                {'role': 'system', 'content': "No agreement selected. Please fetch an agreement first."},
+                {'role': 'user', 'content': prompt}
+            ])
+        
+        return response.message.content
+    except Exception as e:
+        logging.error(f"Error during response generation: {str(e)}")
+        return f"An error occurred: {str(e)}"
+
+
+
+def display_response(response):
+    for word in response.split():
+        yield word + " "
+        time.sleep(0.05)
+
+
+
+with st.expander("Ollama Chatbot"):
+    st.subheader('Ollama Chatbot')
+    #display model
+    #st.write(ModelDetails("llama-13b"))
+    st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
+
+    # initialize chat
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+# Display chat messages from history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Accept user input
+    if prompt := st.chat_input("Hello Ollama, what's up?"):
+
+        # Add user message to chat history
+        st.chat_message("user").write(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        # Generate assistant response
+        with st.spinner("Thinking..."):
+            response = response_generator(prompt, st.session_state)
+
+        # display assistant response
+        st.chat_message("assistant").write(response)
+            
+        # add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    # clear chat history
+    if st.button("Clear Chat"):
+        del st.session_state["messages"]
+        st.toast('Chat cleared successfully!')
+        st.rerun()
