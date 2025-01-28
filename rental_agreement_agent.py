@@ -296,18 +296,36 @@ def response_generator(prompt, state):
             agreement_context = json.dumps(state.selected_agreement, indent=2)
             
             # Prepare messages with agreement context
-            full_context = [
-                {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
-                *state.messages,
-                {'role': 'user', 'content': prompt}
-            ]
+            # full_context = [
+            #     {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
+            #     *state.messages,
+            #     {'role': 'user', 'content': prompt}
+            # ]
             
-            response: ChatResponse = chat(model="mistral", messages=full_context)
+            # response: ChatResponse = chat(model="mistral", messages=full_context)
+
+            URL = ds_config['ollama_ts']
+
+            payload = {
+                "prompt": prompt,
+                "model": "mistral",
+            }
+
+            response = requests.post(URL, json=payload)
         else:
-            response: ChatResponse = chat(model="mistral", messages=[
-                {'role': 'system', 'content': "No agreement selected. Please fetch an agreement first."},
-                {'role': 'user', 'content': prompt}
-            ])
+            # response: ChatResponse = chat(model="mistral", messages=[
+            #     {'role': 'system', 'content': "No agreement selected. Please fetch an agreement first."},
+            #     {'role': 'user', 'content': prompt}
+            # ])
+
+            URL = ds_config['ollama_ts']
+
+            payload = {
+                "prompt": prompt,
+                "model": "mistral",
+            }
+
+            response = requests.post(URL, json=payload)
         
         return response.message.content
     except Exception as e:
