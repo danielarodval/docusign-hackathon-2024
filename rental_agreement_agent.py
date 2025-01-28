@@ -303,7 +303,7 @@ def response_generator(prompt, state):
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, separators=(',', ':'))
             # Force-escape all existing double quotes
-            escaped_agreement_context = agreement_context.replace('"', r'\"')
+            #escaped_agreement_context = agreement_context.replace('"', r'\"')
 
             full_context = [
                 {
@@ -323,6 +323,8 @@ def response_generator(prompt, state):
                 "model": "mistral",
                 "messages": full_context
             }
+
+            print(json.dumps(DATA, indent=2))
 
             # remove all line breaks in json string and make it a single line
             
