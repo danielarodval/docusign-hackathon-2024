@@ -10,6 +10,7 @@ from streamlit_theme import st_theme
 from ds_config import DS_CONFIG as ds_config
 from ollama import chat
 from ollama import ChatResponse
+import httpx
 
 # load environment variables
 from dotenv import load_dotenv
@@ -289,52 +290,41 @@ with st.expander("Docusign Navigator API: Get Agreement"):
                         st.write(response.text)
 
 def response_generator(prompt, state):
+    URL_EXT = "/api/generate"
     try:
         # Check if selected_agreement exists and is a dictionary
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, indent=2)
-            
-            # Prepare messages with agreement context
-            # full_context = [
-            #     {'role': 'system', 'content': f"Agreement Context: {agreement_context}"},
-            #     *state.messages,
-            #     {'role': 'user', 'content': prompt}
-            # ]
-            
-            # response: ChatResponse = chat(model="mistral", messages=full_context)
 
-            URL = ds_config['ollama_ts']
+            DATA = {
+                "model": "mistral",
+                "prompt": prompt
+            }
+            
+            response = requests.post(URL, json=DATA)
 
-            payload = {
+        else:
+            DATA = {
                 "model": "mistral",
                 "prompt": prompt
             }
 
-            
-
-            response = requests.post(URL, json=payload)
-        else:
-            # response: ChatResponse = chat(model="mistral", messages=[
-            #     {'role': 'system', 'content': "No agreement selected. Please fetch an agreement first."},
-            #     {'role': 'user', 'content': prompt}
-            # ])
-
-            URL = ds_config['ollama_ts']
-
-            payload = {
-                "prompt": prompt,
-                "model": "mistral",
-            }
-
-            response = requests.post(URL, json=payload)
+            response = requests.post(URL, json=DATA)
         
-        return response.message.content
+        print(response.text)
+   
+        # split the response by newlines and filter our empty lines
+        response_lines = [line for line in response.text.strip().split("\n") if line]
+        # parse each line as json
+        response_dicts = [json.loads(line) for line in response_lines]
+        # format as string
+        response_text = ''.join(response_dict.get('response', '') for response_dict in response_dicts)
+        print(response_text)
+        return response_text
     except Exception as e:
         logging.error(f"Error during response generation: {str(e)}")
         return f"An error occurred: {str(e)}"
-
-
 
 def display_response(response):
     for word in response.split():
@@ -345,38 +335,44 @@ def display_response(response):
 
 with st.expander("Ollama Chatbot"):
     st.subheader('Ollama Chatbot')
-    #display model
-    #st.write(ModelDetails("llama-13b"))
-    st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
+    URL = ds_config['ollama_ts']#+"/api/generate"
+    is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
+    if is_llm_active.status_code == 200:
+        st.success(is_llm_active.text)
 
-    # initialize chat
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+        st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
 
-# Display chat messages from history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        # initialize chat
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
 
-    # Accept user input
-    if prompt := st.chat_input("Hello Ollama, what's up?"):
+    # Display chat messages from history
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-        # Add user message to chat history
-        st.chat_message("user").write(prompt)
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Accept user input
+        if prompt := st.chat_input("Hello Ollama, what's up?"):
 
-        # Generate assistant response
-        with st.spinner("Thinking..."):
-            response = response_generator(prompt, st.session_state)
+            # Add user message to chat history
+            st.chat_message("user").write(prompt)
+            st.session_state.messages.append({"role": "user", "content": prompt})
 
-        # display assistant response
-        st.chat_message("assistant").write(response)
-            
-        # add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
-    
-    # clear chat history
-    if st.button("Clear Chat"):
-        del st.session_state["messages"]
-        st.toast('Chat cleared successfully!')
-        st.rerun()
+            # Generate assistant response
+            with st.spinner("Thinking..."):
+                response = response_generator(prompt, st.session_state)
+
+            # display assistant response
+            st.chat_message("assistant").write(response)
+                
+            # add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        
+        # clear chat history
+        if st.button("Clear Chat"):
+            del st.session_state["messages"]
+            st.toast('Chat cleared successfully!')
+            st.rerun()
+    else:
+        st.error("No active model running.")
+# %%
