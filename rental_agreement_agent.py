@@ -6,11 +6,14 @@ import base64
 from docusign_esign import Document, ApiClient, EnvelopeDefinition, EnvelopesApi, Signer, Tabs, SignHere, Recipients
 import requests
 from streamlit_oauth import OAuth2Component
-from streamlit_theme import st_theme
-from ds_config import DS_CONFIG as ds_config
 from ollama import chat
 from ollama import ChatResponse
 import httpx
+import toml
+
+# Load configuration from toml file
+#config = toml.load("docusign-hackathon-2024/.streamlit/secrets.toml")
+#ds_config = config["DS_CONFIG"]
 
 # load environment variables
 from dotenv import load_dotenv
@@ -38,12 +41,7 @@ st.set_page_config(
     #layout="wide"
 )
 
-theme = st_theme()
-
-if theme['base'] == 'light':
-    st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
-else:
-    st.logo("app/ds_brand/Docusign Horizontal Color White/Docusign Horizontal_White.png")
+st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
 
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
@@ -364,10 +362,10 @@ def response_generator(prompt, state):
                 for response_dict in response_dicts
             )
         
-        print(response.text)
+        #print(response.text)
    
         
-        print(response_text)
+        #print(response_text)
         return response_text
     except Exception as e:
         logging.error(f"Error during response generation: {str(e)}")

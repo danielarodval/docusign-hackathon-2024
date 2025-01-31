@@ -1,6 +1,7 @@
 # Ignoring Reference Files with keys
 reference_sdk_files/Quickstart App-1-python/
 ds_config.py
+secrets.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

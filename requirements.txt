@@ -46,3 +46,4 @@ streamlit-oauth
 streamlit-navigation-bar
 st-theme
 ollama
+toml
