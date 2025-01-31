@@ -6,6 +6,7 @@ import base64
 from docusign_esign import Document, ApiClient, EnvelopeDefinition, EnvelopesApi, Signer, Tabs, SignHere, Recipients
 import requests
 from streamlit_oauth import OAuth2Component
+from streamlit_theme import st_theme 
 from ollama import chat
 from ollama import ChatResponse
 import httpx
@@ -36,7 +37,15 @@ st.set_page_config(
     #layout="wide"
 )
 
-st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
+theme = st_theme()
+if theme is not None:
+    base = theme['base']
+    if base == 'light':
+        st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
+    else:
+        st.logo("app/ds_brand/Docusign Horizontal Color White/Docusign Horizontal_White.png")
+else:
+    st.logo("app/ds_brand/Docusign Horizontal Color Black/Docusign Horizontal_Black.png")
 
 st.title('Rental Agreement Agent')
 st.write("This is a simple web app that assists you in understanding the terms of a rental agreement. It uses a pre-trained model to extract the key terms from the agreement and provides a summary of the agreement. You can also ask questions about the agreement and get answers based on the extracted terms.")
@@ -53,12 +62,8 @@ SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
 
-agreement_id = ""
-account_id = ""
-# check access token and user
+
 with st.sidebar:
-    #st.write("Access Token: ", st.session_state.get("token"))
-    #st.write("User: ", st.session_state.get("user"))
     try:
         st.write("Access Token: ", 'access_token' in st.session_state.get("token"))
     except:
@@ -72,8 +77,6 @@ with st.sidebar:
         st.write("Name: ", st.session_state.get("user").get("name"))
     except:
         st.write("Account ID: ", False)
-    # display top level items in session state
-    #st.write("Session State: ", st.session_state)
 
 encoded_icon = base64.b64encode(open("app/ds_brand/Docusign_Logo.png", "rb").read()).decode()
 st_btn_ds_icon = f"data:image/png+xml;base64,{encoded_icon}"

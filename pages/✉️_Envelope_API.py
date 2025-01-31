@@ -18,8 +18,6 @@ st.write("This is a simple web app that allows you to upload a rental agreement 
 st.divider()
 
 with st.sidebar:
-    #st.write("Access Token: ", st.session_state.get("token"))
-    #st.write("User: ", st.session_state.get("user"))
     try:
         st.write("Access Token: ", 'access_token' in st.session_state.get("token"))
     except:
@@ -33,8 +31,6 @@ with st.sidebar:
         st.write("Name: ", st.session_state.get("user").get("name"))
     except:
         st.write("Account ID: ", False)
-    # display top level items in session state
-    st.write("Session State: ", st.session_state)
 
 #%% streamlit file uploader
 # UPDATE: find a way to delete the uploaded file when delete uploaded document selected
