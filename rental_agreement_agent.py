@@ -9,11 +9,6 @@ from streamlit_oauth import OAuth2Component
 from ollama import chat
 from ollama import ChatResponse
 import httpx
-import toml
-
-# Load configuration from toml file
-#config = toml.load("docusign-hackathon-2024/.streamlit/secrets.toml")
-#ds_config = config["DS_CONFIG"]
 
 # load environment variables
 from dotenv import load_dotenv
@@ -48,11 +43,12 @@ st.write("This is a simple web app that assists you in understanding the terms o
 st.divider()
 
 #%% docusign authentication
-AUTHORIZATION_URL = f"{ds_config['authorization_server']}/oauth/auth"
-TOKEN_URL = f"{ds_config['authorization_server']}/oauth/token"
-REDIRECT_URI = ds_config["app_url_lcl"]
-CLIENT_ID = ds_config['ds_client_id']
-CLIENT_SECRET = ds_config['ds_client_secret']
+
+AUTHORIZATION_URL = f"{st.secrets['authorization_server']}/oauth/auth"
+TOKEN_URL = f"{st.secrets['authorization_server']}/oauth/token"
+REDIRECT_URI = st.secrets["app_url_lcl"]
+CLIENT_ID = st.secrets['ds_client_id']
+CLIENT_SECRET = st.secrets['ds_client_secret']
 SCOPES = "signature adm_store_unified_repo_read"
 
 oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZATION_URL, TOKEN_URL)
@@ -378,7 +374,7 @@ def display_response(response):
 
 with st.expander("Ollama Chatbot"):
     st.subheader('Ollama Chatbot')
-    URL = ds_config['ollama_ts']#+"/api/generate"
+    URL = st.secrets['ollama_ts']
     is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
 
     # check if model is active and if user is signed into docusign
