@@ -47,3 +47,4 @@ streamlit-navigation-bar
 st-theme
 ollama
 toml
+openai
