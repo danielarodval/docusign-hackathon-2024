@@ -7,9 +7,6 @@ from docusign_esign import Document, ApiClient, EnvelopeDefinition, EnvelopesApi
 import requests
 from streamlit_oauth import OAuth2Component
 from streamlit_theme import st_theme 
-from ollama import chat
-from ollama import ChatResponse
-import httpx
 from openai import OpenAI
 # load environment variables
 from dotenv import load_dotenv
@@ -345,7 +342,6 @@ def display_response(response):
 
 st.divider()
 URL = st.secrets['ollama_ts']
-is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
 
 # check if model is active and if user is signed into docusign
 if access_token is not None:
