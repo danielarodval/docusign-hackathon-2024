@@ -10,7 +10,7 @@ from streamlit_theme import st_theme
 from ollama import chat
 from ollama import ChatResponse
 import httpx
-
+from openai import OpenAI
 # load environment variables
 from dotenv import load_dotenv
 load_dotenv()
@@ -32,9 +32,9 @@ def get_user(access_token):
 st.set_page_config(
     page_title="Rental Agreement Agent",
     page_icon="app/ds_brand/Docusign_Logo.png",
-    initial_sidebar_state="collapsed",
-    menu_items={"About": "https://github.com/danielarodval/docusign-hackathon-2024"}
-    #layout="wide"
+    initial_sidebar_state="expanded",
+    menu_items={"About": "https://github.com/danielarodval/docusign-hackathon-2024"},
+    layout="wide"
 )
 
 theme = st_theme()
@@ -306,66 +306,34 @@ def response_generator(prompt, state):
     
     try:
         # Check if selected_agreement exists and is a dictionary
+        client = OpenAI(
+                api_key= st.secrets["openai_key"]
+            )
+        
         if hasattr(state, 'selected_agreement') and isinstance(state.selected_agreement, dict):
-            url_ext = "/api/chat"
+            
             # Convert agreement to JSON string for context
             agreement_context = json.dumps(state.selected_agreement, separators=(',', ':'))
             # Force-escape all existing double quotes
-            #escaped_agreement_context = agreement_context.replace('"', r'\"')
-            full_context = [
-                {
-                    'role': 'system',
-                    'content': f"Agreement Context: {agreement_context}"
-                },
-                *state.messages,
-                {
-                    'role': 'user',
-                    'content': prompt
-                }
-            ]
+            
 
-            DATA = {
-                "model": "mistral",
-                "messages": full_context
-            }
-
-            #print(json.dumps(DATA, indent=2))
-            response = requests.post(URL+url_ext, json=DATA, headers={"Content-Type": "application/json"})
-
-            # split the response by newlines and filter our empty lines
-            response_lines = [line for line in response.text.strip().split("\n") if line]
-            # parse each line as json
-            response_dicts = [json.loads(line) for line in response_lines]
-            # format as string
-            response_text = ''.join(
-                d['message']['content']
-                for d in response_dicts
-                if 'message' in d and 'content' in d['message']
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                store=True,
+                messages=[
+                    {"role": "system", "content": "You are an AI assistant that helps summarize and analyze agreements."},
+                    {"role": "user", "content": f"Here is the agreement context: {agreement_context}"},
+                    {"role": "user", "content": prompt}
+                ]
             )
 
+            # extract response content
+            response_text = completion.choices[0].message.content
         else:
-            url_ext = "/api/generate"
-            DATA = {
-                "model": "mistral",
-                "prompt": prompt
-            }
-            response = requests.post(URL+url_ext, json=DATA)
+            response_text = None
 
-            # split the response by newlines and filter our empty lines
-            response_lines = [line for line in response.text.strip().split("\n") if line]
-            # parse each line as json
-            response_dicts = [json.loads(line) for line in response_lines]
-            # format as string
-            response_text = ''.join(
-                response_dict.get('response', '') 
-                for response_dict in response_dicts
-            )
-        
-        #print(response.text)
-   
-        
-        #print(response_text)
         return response_text
+    
     except Exception as e:
         logging.error(f"Error during response generation: {str(e)}")
         return f"An error occurred: {str(e)}"
@@ -375,49 +343,49 @@ def display_response(response):
         yield word + " "
         time.sleep(0.05)
 
-with st.expander("Ollama Chatbot"):
-    st.subheader('Ollama Chatbot')
-    URL = st.secrets['ollama_ts']
-    is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
+st.divider()
+URL = st.secrets['ollama_ts']
+is_llm_active = httpx.get(URL, headers={"Content-Type": "application/json"})
 
-    # check if model is active and if user is signed into docusign
-    if access_token is None:
-        st.error("Please sign into Docusign to continue.")
-    elif access_token is not None and is_llm_active.status_code == 200:
-        st.success(is_llm_active.text)
+# check if model is active and if user is signed into docusign
+if access_token is not None:
+    st.subheader("Chat")
+    st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
 
-        st.write("Ask questions about the rental agreement and get answers based on the extracted terms.")
+    # initialize chat
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-        # initialize chat
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+# Display chat messages from history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    # Display chat messages from history
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+    # Accept user input
+    if prompt := st.chat_input("Hello Ollama, what's up?"):
 
-        # Accept user input
-        if prompt := st.chat_input("Hello Ollama, what's up?"):
+        # Add user message to chat history
+        st.chat_message("user").markdown(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-            # Add user message to chat history
-            st.chat_message("user").markdown(prompt)
-            st.session_state.messages.append({"role": "user", "content": prompt})
+        # Generate assistant response
+        with st.spinner("Thinking..."):
+            response = response_generator(prompt, st.session_state)
+            if response is None:
+                st.error("Please select an agreement first.", icon="🚨")
+                response = "Please select an agreement first."
 
-            # Generate assistant response
-            with st.spinner("Thinking..."):
-                response = response_generator(prompt, st.session_state)
-
-            # display assistant response
-            st.chat_message("assistant").write(display_response(response))
-            
-            # add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": response})
+        # display assistant response
+        st.chat_message("assistant").write(display_response(response))
         
+        # add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
+
+    with st.sidebar:
         # clear chat history
         if st.button("Clear Chat"):
             del st.session_state["messages"]
             st.toast('Chat cleared successfully!')
             st.rerun()
-    else:
-        st.error("No active model running.")
+else:
+    st.warning("For LLM access please sign into Docusign to continue.")
