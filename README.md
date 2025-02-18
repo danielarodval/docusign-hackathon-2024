@@ -53,7 +53,7 @@ To build an intelligent and user-friendly chat agent that:
 ### 1) OAuth2:
 > Using a Streamlit third-party component `streamlit_oauth` 
 
-```
+```python
 ﻿import streamlit as st
 from streamlit_oauth import OAuth2Component
 import base64
@@ -79,7 +79,7 @@ st.session_state.user = user
 ### 2) Streamlit File Uploader:
 > File uploader
 
-```
+```python
 import streamlit as st
 
 uploaded_file = st.file_uploader("Upload a rental agreement", type=["pdf"])
